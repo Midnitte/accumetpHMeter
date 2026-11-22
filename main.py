@@ -168,7 +168,7 @@ def page_layout():
     def download_csv():
         output = io.StringIO()
         writer = csv.writer(output)
-        
+        writer.writerow(['pH', 'Sample ID', 'Timestamp'])
         writer.writerows(current_readings)
         
         ui.download.content(output.getvalue(), filename=f"{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv", media_type='text/csv')
