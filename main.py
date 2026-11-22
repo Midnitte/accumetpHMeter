@@ -179,6 +179,7 @@ def page_layout():
         writer = csv.writer(output)
         writer.writerow(['pH', 'Sample ID', 'Timestamp'])
         writer.writerows(current_readings)
+        # TODO: Add Operator? Maybe as input in right drawer
         
         ui.download.content(output.getvalue(), filename=f"{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv", media_type='text/csv')
     with ui.right_drawer(fixed=False).classes('!bg-blue-900 !text-white') as right_drawer:
@@ -186,6 +187,8 @@ def page_layout():
         with ui.row():
             ui.button('Reset', on_click=clear_data, icon='history')
             ui.button('Export', on_click=download_csv, icon='save')
+        # TODO: Add scaling options for chart
+        # TODO: Export chart?
 
     with ui.footer().style('background-color: #3874c8'):
         ui.label('Chris Norulak - 2026')
