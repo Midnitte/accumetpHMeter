@@ -1,0 +1,4 @@
+nicegui==4.0.0
+pyserial==3.5
+pyvisa==1.16.2
+pyvisa_py==0.8.1

@@ -1,0 +1,19 @@
+services:
+  visa-app:
+    build: .
+    network_mode: host
+    privileged: true
+    volumes:
+      - /dev:/dev
+    develop:
+      watch:
+        - action: sync
+          path: .
+          target: /app
+          ignore:
+            - .venv/
+            - __pycache__/
+
+        - action: rebuild
+          path: ./requirements.txt
+
