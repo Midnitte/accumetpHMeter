@@ -49,29 +49,38 @@ def parse_ar50_block(lines):
 
 def serial_reader_thread():
     rm = pyvisa.ResourceManager("@py")
-    ftdi_ports = [
-        p.device for p in list_ports.comports()
-        if "FTDI" in (p.manufacturer or "") or "ttyUSB" in p.device
-    ]
+    while True:
+        inst = None
+        try:
+            ftdi_ports = [
+                p.device for p in list_ports.comports()
+                if "FTDI" in (p.manufacturer or "") or "ttyUSB" in p.device
+            ]
 
-    if not ftdi_ports:
-        latest_reading['Status'] = "No instrument found! Retrying..."
-        time.sleep(3)
+            if not ftdi_ports:
+                latest_reading['Status'] = "No instrument found! Retrying..."
+                time.sleep(3)
+                continue
 
-    visa_address = f"ASRL{ftdi_ports[0]}::INSTR"
-    inst = rm.open_resource(visa_address)
-    inst.baud_rate = 9600
-    inst.read_termination = "\n"
-    inst.write_termination = "\n"
-    inst.timeout = 2000
-    latest_reading['Status'] = "Connected"
-    logger.info("Connected to %s. Waiting for Accumet AR50 readings...", visa_address)
-    buffer = []
+            visa_address = f"ASRL{ftdi_ports[0]}::INSTR"
+            inst = rm.open_resource(visa_address)
+            inst.baud_rate = 9600
+            inst.read_termination = "\n"
+            inst.write_termination = "\n"
+            inst.timeout = 2000
+            latest_reading['Status'] = "Connected"
+            logger.info("Connected to %s. Waiting for Accumet AR50 readings...", visa_address)
+            buffer = []
 
-    try:
-        while True:
-            try:
-                raw = inst.read()
+            while True:
+                try:
+                    raw = inst.read()
+                except pyvisa.errors.VisaIOError as e:
+                    if e.error_code == pyvisa.constants.StatusCode.error_timeout:
+                        # Waiting on readings from instrument, loop until reading received or error occurs
+                        continue
+                    raise
+
                 for line in raw.splitlines():
                     clean = line.strip()
                     if not clean:
@@ -93,17 +102,17 @@ def serial_reader_thread():
                         current_readings.append((reading.get('pH measurement', "--"), reading.get('Sample ID', datetime.now().isoformat()), datetime.now().isoformat()))
                         buffer.clear()
 
-            except pyvisa.errors.VisaIOError as e:
-                if e.error_code == pyvisa.constants.StatusCode.error_timeout:
-                    continue
-                raise
-    except (serial.SerialException, pyvisa.errors.VisaIOError, OSError) as e:
-        logging.error("Error occurred while reading from instrument: %s", e)
-        latest_reading['Status'] = "Disconnected. Retrying..."
-    except KeyboardInterrupt:
-        logging.info("Closing connection.")
-    finally:
-        inst.close()
+        except (serial.SerialException, pyvisa.errors.VisaIOError, OSError) as e:
+            logging.error("Error occurred while reading from instrument: %s", e)
+            latest_reading['Status'] = "Disconnected. Retrying..."
+        except KeyboardInterrupt:
+            logging.info("Closing connection.")
+        finally:
+            if inst:
+                try:
+                    inst.close()
+                except Exception:
+                    pass
 
 threading.Thread(target=serial_reader_thread, daemon=True).start()
 
