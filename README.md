@@ -10,3 +10,4 @@ Install docker
 Plug in the pH meter
 Run `docker compose up --build --watch` from the project folder (`--build` can be omitted after first usage)
 Open `http://localhost:8080`
+Hit `Print` on the pH meter for it to send results

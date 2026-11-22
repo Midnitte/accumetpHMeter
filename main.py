@@ -55,8 +55,8 @@ def serial_reader_thread():
     ]
 
     if not ftdi_ports:
-        latest_reading['Status'] = "No instrument found!"
-        return
+        latest_reading['Status'] = "No instrument found! Retrying..."
+        time.sleep(3)
 
     visa_address = f"ASRL{ftdi_ports[0]}::INSTR"
     inst = rm.open_resource(visa_address)
@@ -97,6 +97,9 @@ def serial_reader_thread():
                 if e.error_code == pyvisa.constants.StatusCode.error_timeout:
                     continue
                 raise
+    except (serial.SerialException, pyvisa.errors.VisaIOError, OSError) as e:
+        logging.error("Error occurred while reading from instrument: %s", e)
+        latest_reading['Status'] = "Disconnected. Retrying..."
     except KeyboardInterrupt:
         logging.info("Closing connection.")
     finally:
